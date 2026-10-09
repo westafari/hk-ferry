@@ -208,11 +208,11 @@ function renderTrip(){
     }
     upcoming.forEach((e, i) => {
       any = true; if (l.approx) approx = true;
-      const arr = e[0] + l.mins, rets = backs.filter(b => b[0] >= arr);
+      const mins = e[1] && r.remnotes[e[1]] && l.slow ? l.slow : l.mins, arr = e[0] + mins, rets = backs.filter(b => b[0] >= arr);
       const shown = rets.slice(0, 5), last = rets[rets.length - 1];
       if (last && !shown.includes(last)) shown.push(last);
       const note = e[1] && r.remnotes[e[1]] ? ' · ' + r.remnotes[e[1]] : '';
-      h += '<div class="trip' + (i === 0 ? ' first' : '') + '"><div class="out"><b>' + fmt(e[0]) + '</b><span>arrive ' + (l.approx ? '≈' : '') + fmt(arr) + note + '</span></div>';
+      h += '<div class="trip' + (i === 0 ? ' first' : '') + '"><div class="out"><b>' + fmt(e[0]) + '</b><span>arrive ' + (l.approx ? '≈' : '') + fmt(arr) + ' · ' + (l.approx ? '≈' : '') + mins + ' min crossing' + note + '</span></div>';
       if (!rets.length) h += '<div class="back-l">No boat back the same day</div>';
       else {
         h += '<div class="back-l">Back to ' + (l.outLeg ? 'Aberdeen / Stanley' : esc(l.origin)) + ' · ' + rets.length + ' option' + (rets.length > 1 ? 's' : '') + '</div>';
@@ -249,7 +249,7 @@ function renderHome(){
         });
         nx = parts.join('');
       }
-      h += '<button class="route" data-id="' + r.id + '"><div class="r-name"><span>' + esc(r.name) + '</span><span class="r-op">' + esc(r.op) + '</span></div><div class="r-next">' + nx + '</div></button>';
+      h += '<button class="route" data-id="' + r.id + '"><div class="r-name"><span>' + esc(r.name) + '</span><span class="r-op">' + esc([r.op, r.dshort].filter(Boolean).join(' · ')) + '</span></div><div class="r-next">' + nx + '</div></button>';
     });
     h += '</div></div>';
   });
@@ -263,7 +263,7 @@ function renderDetail(){
   const src = r.freq || r.dirs, names = Object.keys(src).filter(k => src[k]);
   if (dirIx >= names.length) dirIx = 0;
   const name = names[dirIx];
-  let h = '<button class="back" id="back">‹ All routes</button><h2 class="d-title">' + esc(r.name) + '</h2>' + (r.op ? '<div class="d-op">' + esc(r.op) + '</div>' : '') + (r.info ? '<p class="d-info">' + esc(r.info) + '</p>' : '');
+  let h = '<button class="back" id="back">‹ All routes</button><h2 class="d-title">' + esc(r.name) + '</h2>' + (r.op ? '<div class="d-op">' + esc(r.op) + '</div>' : '') + (r.dur ? '<p class="d-info"><b>Crossing</b> ' + esc(r.dur) + (r.dsrc === 'est' ? ' <em>(estimate)</em>' : r.dsrc === 'tt' ? ' <em>(from the timetable)</em>' : '') + '</p>' : '') + (r.info ? '<p class="d-info">' + esc(r.info) + '</p>' : '');
   if (names.length > 1) h += '<div class="tabs" role="tablist">' + names.map((n, i) => '<button role="tab" data-i="' + i + '" aria-selected="' + (i === dirIx) + '">' + esc(n.replace(/^Towards /, '→ ').replace(' to ', ' → ')) + '</button>').join('') + '</div>';
   h += '<p class="dayline">' + DAYNAME[d] + ((r.daynotes || {})[d] ? ' · <b>' + esc(r.daynotes[d]) + '</b>' : '') + '</p>';
   if (r.freq) {

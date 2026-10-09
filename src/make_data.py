@@ -298,6 +298,34 @@ LEGPIER = {('cc', 'Central'): 'central-5', ('mw', 'Central'): 'central-6', ('pc'
 for d_ in D:
     for l_ in d_['legs']:
         l_['pier'] = LEGPIER.get((l_['r'], l_['origin']))
+
+# ---- Journey times. src: 'td' official, 'tt' worked out from the timetable, 'est' rough figure from web sources ----
+DUR = {'star-central': ('9 min', 'About 9 min', 'td'), 'star-wanchai': ('8 min', 'About 8 min', 'td'), 'np-hh': ('8 min', 'About 8 min', 'td'), 'np-kc': ('14 min', 'About 14 min', 'td'),
+ 'np-kt': ('12–24 min', 'North Point to Kwun Tong about 12 min; on to Kai Tak about 24 min', 'td'), 'swh-kt': ('15 min', 'About 15 min', 'td'), 'swh-skt': ('10 min', 'About 10 min', 'td'),
+ 'c-hh': ('16 min', 'About 16 min', 'td'), 'cc': ('35–60 min', 'Fast ferry about 35–40 min; ordinary ferry about 55–60 min', 'td'), 'mw': ('35–40 min', 'About 35–40 min', 'td'),
+ 'pc': ('25–30 min', 'Central to Peng Chau about 25–30 min', 'td'), 'ysw': ('27 min', 'About 27 min', 'td'), 'skw': ('30–40 min', 'About 30–40 min', 'td'),
+ 'inter': ('35 min', 'About 35 min end to end', 'td'), 'abd-ysw': ('35 min', 'About 35 min', 'td'), 'abd-skw': ('35 min', 'About 35 min', 'td'), 'db': ('25 min', 'About 25 min', 'td'),
+ 'db-mw': ('20 min', 'About 20 min', 'td'), 'db-pc': ('10–15 min', 'Peng Chau to Discovery Bay about 10 min; via Trappist Monastery about 15 min', 'td'),
+ 'mawan-c': ('22 min', 'About 22 min', 'td'), 'mawan-tw': ('12 min', 'About 12 min', 'td'), 'tm-to': ('70–98 min', 'Whole run: fast ferry about 70 min, ordinary about 98 min', 'td'),
+ 'k-abd-alc': ('4 min', 'About 4 min', 'td'), 'k-mls-lcw': ('90 min', 'About 90 min', 'td'),
+ 'k-mls-tapmun': ('90–125 min', 'Ma Liu Shui to Tap Mun about 90 min, on to Wong Shek about 125 min', 'tt'),
+ 'k-tapmun': ('25–35 min', 'About 25–35 min; the sailings that stop at Ko Lau Wan and Chek Keng take about 35', 'est'),
+ 'k-sk-kausai': ('30–60 min', 'About 30 min to Kau Sai Village, 60 min to High Island', 'tt'),
+ 'k-tpc': ('≈90 min', 'About 90 min', 'est'), 'k-potoi': ('30–50 min', 'About 50 min from Aberdeen, about 30 min from Stanley', 'est'),
+ 'k-tl-swh': ('20–40 min', 'Somewhere between 20 and 40 min; sources disagree', 'est'), 'k-tl-skt': ('20–40 min', 'Somewhere between 20 and 40 min; sources disagree', 'est')}
+import re as _re
+for r in R:
+    if r['id'] in DUR: r['dshort'], r['dur'], r['dsrc'] = DUR[r['id']]
+    r['info'] = r['info'].replace('North Point–Kwun Tong about 12 min; the whole run about 24 min. ', '')
+    r['info'] = _re.sub(r'(About|about) \d+ min\. ?', '', r['info'])
+    r['info'] = r['info'].replace('Fast ferry about 35–40 min; ordinary ferries are slower and marked.', 'Ordinary (slower) ferries are marked.')
+    r['info'] = r['info'].replace('North Point–Kwun Tong about 12 min; the whole run about 24 min. ', '').strip()
+LEGDUR = {('cc', 'Central'): (40, False, 60), ('mw', 'Central'): (40, False, None), ('pc', 'Central'): (30, False, None), ('ysw', 'Central'): (27, False, None), ('abd-ysw', 'Aberdeen'): (35, False, None),
+          ('skw', 'Central'): (40, False, None), ('abd-skw', 'Aberdeen'): (35, False, None), ('db', 'Central'): (25, False, None), ('k-tl-swh', 'Sai Wan Ho'): (40, True, None), ('k-tl-skt', 'Sam Ka Tsuen'): (40, True, None),
+          ('k-potoi', 'Aberdeen'): (50, True, None), ('k-potoi', 'Stanley'): (30, True, None), ('k-tapmun', 'Wong Shek'): (35, True, None)}
+for d_ in D:
+    for l_ in d_['legs']:
+        if (l_['r'], l_['origin']) in LEGDUR: l_['mins'], l_['approx'], l_['slow'] = LEGDUR[(l_['r'], l_['origin'])]
 json.dump({'routes': R, 'dest': D, 'piers': PIERS}, open(OUT, 'w'), ensure_ascii=False, separators=(',', ':'))
 print(len(R), 'routes', sum(len(r['dirs']) for r in R), 'dirs')
 for r in R: print(r['id'], len(r['fares']), 'fares', [(d, {k: len(v) for k, v in dd.items()}) for d, dd in list(r['dirs'].items())[:1]])
