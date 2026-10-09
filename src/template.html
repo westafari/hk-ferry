@@ -4,17 +4,17 @@
 /* Layout: a departure-board feel. One sticky bar (clock + day type), a grouped route list with the next sailing on each row, and a detail view with direction tabs and time chips. */
 :root{
   --bg:#eef3f3; --surface:#ffffff; --ink:#0d2a33; --muted:#546a72; --line:#d3e0e2;
-  --sea:#0a6f7d; --sea-soft:#d9eef0; --next:#d8452b; --next-soft:#fbe4de; --past:#9fb1b6;
+  --warn:#a35a00; --sea:#0a6f7d; --sea-soft:#d9eef0; --next:#d8452b; --next-soft:#fbe4de; --past:#9fb1b6;
   --display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
   --body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#0a1a1f; --surface:#112830; --ink:#e3f0f2; --muted:#90a9b0; --line:#25414a;
-  --sea:#4fc3d1; --sea-soft:#14363d; --next:#ff7a5e; --next-soft:#3b1f19; --past:#4f6970; color-scheme:dark}}
+  --warn:#f0b44c; --sea:#4fc3d1; --sea-soft:#14363d; --next:#ff7a5e; --next-soft:#3b1f19; --past:#4f6970; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0a1a1f; --surface:#112830; --ink:#e3f0f2; --muted:#90a9b0; --line:#25414a;
-  --sea:#4fc3d1; --sea-soft:#14363d; --next:#ff7a5e; --next-soft:#3b1f19; --past:#4f6970; color-scheme:dark}
+  --warn:#f0b44c; --sea:#4fc3d1; --sea-soft:#14363d; --next:#ff7a5e; --next-soft:#3b1f19; --past:#4f6970; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--body);margin:0;padding-inline:16px;padding-block:0 40px;-webkit-text-size-adjust:100%}
 .wrap{max-width:640px;margin-inline:auto}
@@ -62,6 +62,9 @@ h1{font:700 1.2rem/1.1 var(--display);margin:0;letter-spacing:-.01em}
 .rets{display:grid;grid-template-columns:repeat(auto-fill,minmax(4.7rem,1fr));gap:6px}
 .ret{border:1px solid var(--line);border-radius:8px;padding:6px 4px;text-align:center;font:500 .98rem var(--mono);font-variant-numeric:tabular-nums}
 .ret small{display:block;font:400 .68rem var(--body);color:var(--muted)}
+.ret.tight{border-style:dashed}.ret.tight small,.retrow.tight .tt{color:var(--warn)}
+.nd{font:600 .62rem var(--body);color:var(--muted);margin-left:2px;vertical-align:super}
+.chip.next .nd,.trip.first .nd{color:inherit}
 .ret.last{border-color:var(--sea);background:var(--sea-soft)}
 .ret.last small{color:var(--sea);font-weight:600}
 .retrow{display:grid;grid-template-columns:4.4rem 1fr;gap:10px;padding:5px 0;border-top:1px solid var(--line);font-size:.88rem}
@@ -148,6 +151,9 @@ function pierRows(ids){
     return p.la ? '<a class="pier" href="' + mapsUrl(p) + '" target="_blank" rel="noopener"><div>' + esc(p.n) + (p.a ? ' <em>approximate pin</em>' : '') + '</div><span>Directions ›</span></a>'
                 : '<div class="pier"><div>' + esc(p.n) + ' <em>no map pin</em></div></div>'; }).join('') + '</div>';
 }
+const ft = m => fmt(m) + (m >= 1440 ? ' next day' : '');
+const th = m => fmt(m) + (m >= 1440 ? '<span class="nd">+1</span>' : '');
+const MIN_GAP = 10, TIGHT = 30; /* minutes between getting off and the return boat: below MIN_GAP is hidden, below TIGHT is flagged */
 let day = 'wd', manual = false, openId = null, dirIx = 0;
 
 function hkNow(){
@@ -208,22 +214,22 @@ function renderTrip(){
     }
     upcoming.forEach((e, i) => {
       any = true; if (l.approx) approx = true;
-      const mins = e[1] && r.remnotes[e[1]] && l.slow ? l.slow : l.mins, arr = e[0] + mins, rets = backs.filter(b => b[0] >= arr);
+      const mins = e[1] && r.remnotes[e[1]] && l.slow ? l.slow : l.mins, arr = e[0] + mins, all = backs.filter(b => b[0] >= arr), rets = all.filter(b => b[0] - arr >= MIN_GAP);
       const shown = rets.slice(0, 5), last = rets[rets.length - 1];
       if (last && !shown.includes(last)) shown.push(last);
       const note = e[1] && r.remnotes[e[1]] ? ' · ' + r.remnotes[e[1]] : '';
-      h += '<div class="trip' + (i === 0 ? ' first' : '') + '"><div class="out"><b>' + fmt(e[0]) + '</b><span>arrive ' + (l.approx ? '≈' : '') + fmt(arr) + ' · ' + (l.approx ? '≈' : '') + mins + ' min crossing' + note + '</span></div>';
-      if (!rets.length) h += '<div class="back-l">No boat back the same day</div>';
+      h += '<div class="trip' + (i === 0 ? ' first' : '') + '"><div class="out"><b>' + th(e[0]) + '</b><span>arrive ' + (l.approx ? '≈' : '') + th(arr) + ' · ' + (l.approx ? '≈' : '') + mins + ' min crossing' + note + '</span></div>';
+      if (!rets.length) h += '<div class="back-l">' + (all.length ? 'No boat back with time to get off and board' : 'No boat back the same day') + '</div>';
       else {
         h += '<div class="back-l">Back to ' + (l.outLeg ? 'Aberdeen / Stanley' : esc(l.origin)) + ' · ' + rets.length + ' option' + (rets.length > 1 ? 's' : '') + '</div>';
-        if (shown.some(b => b[2])) h += shown.map(b => '<div class="retrow' + (b === last ? ' last' : '') + '"><span class="t">' + fmt(b[0]) + '</span><span>' + (b[2] ? esc(b[2]) + ' · ' : '') + dur(b[0] - arr) + ' there' + (b === last ? ' · last boat' : '') + '</span></div>').join('');
-        else h += '<div class="rets">' + shown.map(b => '<div class="ret' + (b === last ? ' last' : '') + '">' + fmt(b[0]) + '<small>' + (b === last ? 'last boat' : dur(b[0] - arr) + ' there') + '</small></div>').join('') + '</div>';
+        if (shown.some(b => b[2])) h += shown.map(b => '<div class="retrow' + (b === last ? ' last' : '') + (b[0] - arr < TIGHT ? ' tight' : '') + '"><span class="t">' + th(b[0]) + '</span><span>' + (b[2] ? esc(b[2]) + ' · ' : '') + dur(b[0] - arr) + ' there' + (b[0] - arr < TIGHT ? ' <span class="tt">· tight</span>' : '') + (b === last ? ' · last boat' : '') + '</span></div>').join('');
+        else h += '<div class="rets">' + shown.map(b => '<div class="ret' + (b === last ? ' last' : '') + (b[0] - arr < TIGHT ? ' tight' : '') + '">' + th(b[0]) + '<small>' + (b === last ? 'last boat' : b[0] - arr < TIGHT ? dur(b[0] - arr) + ' · tight' : dur(b[0] - arr) + ' there') + '</small></div>').join('') + '</div>';
       }
       h += '</div>';
     });
     h += '<button class="back" data-open="' + r.id + '" style="padding-top:0">Full ' + esc(r.name) + ' timetable ›</button></div>';
   });
-  h += '<p class="legend">"There" is the time you would have on the island between getting off and the return boat.' + (approx ? ' Arrival times marked ≈ are my estimates of the crossing; the timetable data doesn’t include journey times.' : '') + '</p>';
+  h += '<p class="legend">"There" is the time you would have on the island between getting off and the return boat. Boats leaving less than 10 minutes after you arrive are left out, and under 30 minutes is marked tight. +1 means after midnight.' + (approx ? ' Arrival times marked ≈ are my estimates of the crossing; the timetable data doesn’t include journey times.' : '') + '</p>';
   $('#detail').innerHTML = h;
 }
 
@@ -245,7 +251,7 @@ function renderHome(){
         Object.keys(r.dirs).slice(0, 2).forEach(k => {
           const list = entries(r, k, d), e = nextOf(list, nowFor(c, d)), tf = !e && list.length && isToday(c, d) ? entries(r, k, c.tmr)[0] : null;
           const short = k.replace(/ via .*/, '').replace(/^Towards /, '→ ').replace(' to ', ' → ');
-          parts.push('<span>' + (r.dirs[k] && Object.keys(r.dirs).length > 1 && k !== 'All sailings' ? esc(short) + ' ' : '') + (e ? '<b>' + fmt(e[0]) + '</b>' : !list.length ? '<i>no service</i>' : tf ? '<i>tomorrow ' + fmt(tf[0]) + '</i>' : '<i>done</i>') + '</span>');
+          parts.push('<span>' + (r.dirs[k] && Object.keys(r.dirs).length > 1 && k !== 'All sailings' ? esc(short) + ' ' : '') + (e ? '<b>' + th(e[0]) + '</b>' : !list.length ? '<i>no service</i>' : tf ? '<i>tomorrow ' + fmt(tf[0]) + '</i>' : '<i>done</i>') + '</span>');
         });
         nx = parts.join('');
       }
@@ -277,12 +283,12 @@ function renderDetail(){
       const mark = e => e[1] ? '<sup>' + (r.remnotes[e[1]] ? e[1] : '†') + '</sup>' : '';
       const pill = e => e[1] && r.remnotes[e[1]] ? '<span class="pill">' + esc(r.remnotes[e[1]]) + '</span>' : '';
       const cls = e => e === nx ? ' next' : (isToday(c, d) && e[0] < c.now ? ' past' : '');
-      if (isRows) h += '<div class="list">' + list.map(e => '<div class="row' + cls(e) + '"><span class="t">' + fmt(e[0]) + '</span><span class="l">' + esc(e[2]) + (e[1] && !r.remnotes[e[1]] ? ' †' : '') + pill(e) + '</span></div>').join('') + '</div>';
-      else h += '<div class="chips">' + list.map(e => '<div class="chip' + cls(e) + '">' + fmt(e[0]) + mark(e) + '</div>').join('') + '</div>';
+      if (isRows) h += '<div class="list">' + list.map(e => '<div class="row' + cls(e) + '"><span class="t">' + th(e[0]) + '</span><span class="l">' + esc(e[2]) + (e[1] && !r.remnotes[e[1]] ? ' †' : '') + pill(e) + '</span></div>').join('') + '</div>';
+      else h += '<div class="chips">' + list.map(e => '<div class="chip' + cls(e) + '">' + th(e[0]) + mark(e) + '</div>').join('') + '</div>';
       const keys = [...new Set(list.map(e => e[1]).filter(k => k && r.remnotes[k]))];
-      h += '<p class="legend">' + (!isToday(c, d) ? 'First sailing ' + fmt(list[0][0]) + ', last ' + fmt(list[list.length - 1][0]) + '.'
-        : nx ? 'Next sailing ' + fmt(nx[0]) + '.'
-        : 'Last boat today was ' + fmt(list[list.length - 1][0]) + '.' + (entries(r, name, c.tmr)[0] ? ' Tomorrow’s first is ' + fmt(entries(r, name, c.tmr)[0][0]) + '.' : '')) + keys.map(k => ' <sup style="color:var(--sea);font-weight:600">' + k + '</sup> ' + esc(r.remnotes[k]) + '.').join('') + '</p>';
+      h += '<p class="legend">' + (!isToday(c, d) ? 'First sailing ' + ft(list[0][0]) + ', last ' + ft(list[list.length - 1][0]) + '.'
+        : nx ? 'Next sailing ' + ft(nx[0]) + '.'
+        : 'Last boat today was ' + ft(list[list.length - 1][0]) + '.' + (entries(r, name, c.tmr)[0] ? ' Tomorrow’s first is ' + ft(entries(r, name, c.tmr)[0][0]) + '.' : '')) + keys.map(k => ' <sup style="color:var(--sea);font-weight:600">' + k + '</sup> ' + esc(r.remnotes[k]) + '.').join('') + '</p>';
     }
   }
   if (r.piers && r.piers.length) h += '<div class="box"><h3>Piers · tap for directions</h3>' + pierRows(r.piers) + '</div>';
