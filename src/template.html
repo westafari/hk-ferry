@@ -1,0 +1,302 @@
+<title>HK Ferry Times</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: a departure-board feel. One sticky bar (clock + day type), a grouped route list with the next sailing on each row, and a detail view with direction tabs and time chips. */
+:root{
+  --bg:#eef3f3; --surface:#ffffff; --ink:#0d2a33; --muted:#546a72; --line:#d3e0e2;
+  --sea:#0a6f7d; --sea-soft:#d9eef0; --next:#d8452b; --next-soft:#fbe4de; --past:#9fb1b6;
+  --display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0a1a1f; --surface:#112830; --ink:#e3f0f2; --muted:#90a9b0; --line:#25414a;
+  --sea:#4fc3d1; --sea-soft:#14363d; --next:#ff7a5e; --next-soft:#3b1f19; --past:#4f6970; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0a1a1f; --surface:#112830; --ink:#e3f0f2; --muted:#90a9b0; --line:#25414a;
+  --sea:#4fc3d1; --sea-soft:#14363d; --next:#ff7a5e; --next-soft:#3b1f19; --past:#4f6970; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--body);margin:0;padding-inline:16px;padding-block:0 40px;-webkit-text-size-adjust:100%}
+.wrap{max-width:640px;margin-inline:auto}
+button{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(--sea);outline-offset:2px}
+
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:12px 10px;border-bottom:1px solid var(--line);margin-inline:-16px;padding-inline:16px}
+.bar-in{max-width:640px;margin-inline:auto;display:grid;gap:10px}
+.top{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+h1{font:700 1.45rem/1.1 var(--display);margin:0;letter-spacing:-.01em}
+.clock{font:500 .95rem var(--mono);color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
+.seg button{border:0;background:none;padding:9px 4px;border-radius:7px;font-weight:500;font-size:.88rem;cursor:pointer;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--sea);color:#fff}
+:root[data-theme="dark"] .seg button[aria-pressed="true"]{color:#06232a}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#06232a}}
+.hint{font-size:.78rem;color:var(--muted);margin:0}
+
+#search{width:100%;margin-top:14px;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit}
+.group{margin-top:22px}
+.group h2{font:600 .74rem var(--body);text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0 0 8px}
+.routes{display:grid;gap:8px}
+.route{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer}
+.route:active{background:var(--sea-soft)}
+.r-name{font:600 1.02rem/1.25 var(--display);display:flex;justify-content:space-between;gap:10px}
+.r-op{font:400 .78rem var(--body);color:var(--muted);white-space:nowrap}
+.r-next{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.84rem;color:var(--muted)}
+.r-next b{font:600 .9rem var(--mono);color:var(--next);font-variant-numeric:tabular-nums}
+.r-next i{font-style:normal;color:var(--past)}
+
+.goto{margin-top:16px}
+.goto h2{font:600 .74rem var(--body);text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0 0 8px}
+.dests{display:flex;flex-wrap:wrap;gap:8px}
+.dests button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:9px 14px;font-weight:500;font-size:.92rem;cursor:pointer}
+.dests button:active{background:var(--sea-soft)}
+.leg h3{font:600 .74rem var(--body);text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:22px 0 8px}
+.trip{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.trip.first{border-color:var(--next);box-shadow:inset 3px 0 0 var(--next)}
+.out{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 12px}
+.out b{font:600 1.35rem var(--mono);font-variant-numeric:tabular-nums}
+.trip.first .out b{color:var(--next)}
+.out span{color:var(--muted);font-size:.86rem}
+.back-l{font-size:.74rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:10px 0 6px}
+.rets{display:grid;grid-template-columns:repeat(auto-fill,minmax(4.7rem,1fr));gap:6px}
+.ret{border:1px solid var(--line);border-radius:8px;padding:6px 4px;text-align:center;font:500 .98rem var(--mono);font-variant-numeric:tabular-nums}
+.ret small{display:block;font:400 .68rem var(--body);color:var(--muted)}
+.ret.last{border-color:var(--sea);background:var(--sea-soft)}
+.ret.last small{color:var(--sea);font-weight:600}
+.retrow{display:grid;grid-template-columns:4.4rem 1fr;gap:10px;padding:5px 0;border-top:1px solid var(--line);font-size:.88rem}
+.retrow:first-child{border-top:0}.retrow .t{font:500 .98rem var(--mono)}.retrow.last .t{color:var(--sea);font-weight:600}
+.pier{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 12px;border-bottom:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:.95rem}
+.pier:last-child{border-bottom:0}
+a.pier span{color:var(--sea);font-weight:600;font-size:.86rem;white-space:nowrap}
+.pier em{font-style:normal;color:var(--muted);font-size:.78rem}
+.plist{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.pl{display:inline-block;margin:-2px 0 8px;color:var(--sea);font-weight:600;font-size:.88rem;text-decoration:none}
+.back{background:none;border:0;color:var(--sea);font-weight:600;padding:14px 0 6px;cursor:pointer;font-size:.95rem}
+.d-title{font:700 1.5rem/1.15 var(--display);margin:4px 0 2px;text-wrap:balance}
+.d-op{color:var(--sea);font-weight:600;font-size:.9rem}
+.d-info{color:var(--muted);font-size:.88rem;margin:6px 0 0}
+.tabs{display:flex;gap:6px;overflow-x:auto;margin:16px -16px 0;padding:2px 16px 6px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;font-size:.88rem;cursor:pointer;white-space:nowrap}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.dayline{margin:10px 0 10px;font-size:.84rem;color:var(--muted)}
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(4.7rem,1fr));gap:8px}
+.chip{font:500 1rem var(--mono);font-variant-numeric:tabular-nums;text-align:center;padding:10px 4px;border-radius:9px;background:var(--surface);border:1px solid var(--line);position:relative}
+.chip.past{color:var(--past);background:transparent}
+.chip.next{background:var(--next);border-color:var(--next);color:#fff;font-weight:600}
+:root[data-theme="dark"] .chip.next{color:#2a0d06}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .chip.next{color:#2a0d06}}
+.chip sup{font:600 .62rem var(--body);position:absolute;top:2px;right:5px;color:var(--sea)}
+.chip.next sup{color:inherit}
+.list{display:grid;gap:6px}
+.row{display:grid;grid-template-columns:4.4rem 1fr;gap:12px;align-items:baseline;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:9px 12px}
+.row .t{font:500 1rem var(--mono);font-variant-numeric:tabular-nums}
+.row .l{font-size:.88rem;color:var(--muted);min-width:0}
+.row.past{background:transparent}.row.past .t,.row.past .l{color:var(--past)}
+.row.next{background:var(--next-soft);border-color:var(--next)}.row.next .t{color:var(--next);font-weight:600}
+.pill{display:inline-block;font-size:.72rem;font-weight:600;color:var(--sea);background:var(--sea-soft);border-radius:999px;padding:1px 8px;margin-left:6px}
+.empty{padding:18px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:.92rem}
+.legend{font-size:.8rem;color:var(--muted);margin:12px 0 0}
+.box{margin-top:22px}
+.box h3{font:600 .74rem var(--body);text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0 0 8px}
+table{width:100%;border-collapse:collapse;font-size:.9rem;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+td,th{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:500}
+.tw{overflow-x:auto;border-radius:10px}
+.foot{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);font-size:.8rem;color:var(--muted)}
+.foot p{margin:0 0 8px}
+.foot a{color:var(--sea)}
+@media (prefers-reduced-motion:no-preference){.view{animation:in .18s ease-out}@keyframes in{from{opacity:.4;transform:translateY(4px)}}}
+</style>
+
+<div class="bar"><div class="bar-in">
+  <div class="top"><h1>HK Ferry Times</h1><div class="clock" id="clock"></div></div>
+  <div class="seg" id="seg" role="group" aria-label="Day of service">
+    <button data-d="wd" aria-pressed="false">Mon–Fri</button>
+    <button data-d="sat" aria-pressed="false">Saturday</button>
+    <button data-d="sun" aria-pressed="false">Sun / holiday</button>
+  </div>
+  <p class="hint" id="hint"></p>
+</div></div>
+
+<main class="wrap">
+  <section id="home" class="view">
+    <div class="goto" id="goto"><h2>Going to…</h2><div class="dests" id="dests"></div></div>
+    <input id="search" type="search" placeholder="Search a pier or island" aria-label="Search routes" autocomplete="off">
+    <div id="groups"></div>
+  </section>
+  <section id="detail" class="view" hidden></section>
+  <footer class="foot">
+    <p>Timetables and fares from the Transport Department's open data (updated __BUILT__) and Star Ferry's published frequencies. Times are 24-hour, Hong Kong time. Sailings after midnight appear at the end of the list.</p>
+    <p>Ferries can be cancelled or changed for typhoons, black rainstorm warnings and special events. Check the operator before a tight connection. Public holidays use the Sun / holiday timetable.</p>
+    <p>† on a time means the operator attaches a footnote (for example a different vessel or a stop). It isn't spelled out in the open data.</p>
+  </footer>
+</main>
+
+<script>
+const DATA = __DATA__, ROUTES = DATA.routes, DEST = DATA.dest, PIERS = DATA.piers;
+const DAYNAME = {wd:'Monday to Friday', sat:'Saturday', sun:'Sunday & public holidays'};
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = m => { m %= 1440; return String(Math.floor(m/60)).padStart(2,'0') + ':' + String(m%60).padStart(2,'0'); };
+const APPLE = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
+const mapsUrl = p => APPLE ? 'https://maps.apple.com/?daddr=' + p.la + ',' + p.lo : 'https://www.google.com/maps/dir/?api=1&destination=' + p.la + ',' + p.lo;
+function pierRows(ids){
+  return '<div class="plist">' + ids.map(id => { const p = PIERS[id];
+    return p.la ? '<a class="pier" href="' + mapsUrl(p) + '" target="_blank" rel="noopener"><div>' + esc(p.n) + (p.a ? ' <em>approximate pin</em>' : '') + '</div><span>Directions ›</span></a>'
+                : '<div class="pier"><div>' + esc(p.n) + ' <em>no map pin</em></div></div>'; }).join('') + '</div>';
+}
+let day = 'wd', manual = false, openId = null, dirIx = 0;
+
+function hkNow(){
+  const p = new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Hong_Kong',weekday:'short',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date());
+  const g = t => p.find(x => x.type === t).value;
+  return {wk:g('weekday'), min:(+g('hour'))*60 + (+g('minute'))};
+}
+const dayOf = wk => wk === 'Sun' ? 'sun' : wk === 'Sat' ? 'sat' : 'wd';
+const prevWk = {Mon:'Sun',Tue:'Mon',Wed:'Tue',Thu:'Wed',Fri:'Thu',Sat:'Fri',Sun:'Sat'};
+
+/* Service day and clock position. Between midnight and 03:00 the late sailings of yesterday's timetable are still running. */
+function ctx(){
+  const n = hkNow();
+  const late = n.min < 180;
+  const autoDay = dayOf(late ? prevWk[n.wk] : n.wk);
+  return {now: late ? n.min + 1440 : n.min, autoDay, label: fmt(n.min)};
+}
+function activeDay(c){ return manual ? day : c.autoDay; }
+
+function entries(r, dirName, d){ return (r.dirs[dirName] || {})[d] || []; }
+function nextOf(list, now){ return list.find(e => e[0] >= now); }
+
+function renderBar(){
+  const c = ctx(), d = activeDay(c);
+  $('#clock').textContent = c.label + ' HKT';
+  document.querySelectorAll('#seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.d === d)));
+  $('#hint').textContent = manual && d !== c.autoDay ? 'Showing ' + DAYNAME[d] + '. Tap ' + { wd:'Mon–Fri', sat:'Saturday', sun:'Sun / holiday' }[c.autoDay] + ' to go back to today.'
+    : 'Today follows ' + DAYNAME[c.autoDay] + '. On a public holiday, tap Sun / holiday.';
+}
+
+function renderDests(){
+  const q = $('#search').value.trim();
+  $('#goto').hidden = !!q;
+  $('#dests').innerHTML = DEST.map(d => '<button data-to="' + d.id + '">' + esc(d.name) + '</button>').join('');
+}
+function dur(m){ const h = Math.floor(m/60), mm = m%60; return h ? h + 'h' + (mm ? ' ' + String(mm).padStart(2,'0') + 'm' : '') : mm + 'm'; }
+function renderTrip(){
+  const dd = DEST.find(x => x.id === openId); if (!dd) return;
+  const c = ctx(), d = activeDay(c);
+  let h = '<button class="back" id="back">‹ All routes</button><h2 class="d-title">Going to ' + esc(dd.name) + '</h2><p class="dayline">' + DAYNAME[d] + '</p>';
+  let any = false, approx = false;
+  dd.legs.forEach(l => {
+    const r = ROUTES.find(x => x.id === l.r);
+    let outs = entries(r, l.out, d).filter(e => !l.outLeg || e[2] === l.outLeg);
+    const backs = entries(r, l.back, d);
+    const upcoming = outs.filter(e => e[0] >= c.now).slice(0, 3);
+    h += '<div class="leg"><h3>From ' + esc(l.origin) + '</h3>' + (l.pier && PIERS[l.pier].la ? '<a class="pl" href="' + mapsUrl(PIERS[l.pier]) + '" target="_blank" rel="noopener">Directions to ' + esc(PIERS[l.pier].n) + ' ›</a>' : '');
+    if (!upcoming.length) h += '<div class="empty">No more sailings from ' + esc(l.origin) + ' today' + ((r.daynotes || {})[d] ? '. ' + esc(r.daynotes[d]) : '.') + '</div>';
+    upcoming.forEach((e, i) => {
+      any = true; if (l.approx) approx = true;
+      const arr = e[0] + l.mins, rets = backs.filter(b => b[0] >= arr);
+      const shown = rets.slice(0, 5), last = rets[rets.length - 1];
+      if (last && !shown.includes(last)) shown.push(last);
+      const note = e[1] && r.remnotes[e[1]] ? ' · ' + r.remnotes[e[1]] : '';
+      h += '<div class="trip' + (i === 0 ? ' first' : '') + '"><div class="out"><b>' + fmt(e[0]) + '</b><span>arrive ' + (l.approx ? '≈' : '') + fmt(arr) + note + '</span></div>';
+      if (!rets.length) h += '<div class="back-l">No boat back the same day</div>';
+      else {
+        h += '<div class="back-l">Back to ' + (l.outLeg ? 'Aberdeen / Stanley' : esc(l.origin)) + ' · ' + rets.length + ' option' + (rets.length > 1 ? 's' : '') + '</div>';
+        if (shown.some(b => b[2])) h += shown.map(b => '<div class="retrow' + (b === last ? ' last' : '') + '"><span class="t">' + fmt(b[0]) + '</span><span>' + (b[2] ? esc(b[2]) + ' · ' : '') + dur(b[0] - arr) + ' there' + (b === last ? ' · last boat' : '') + '</span></div>').join('');
+        else h += '<div class="rets">' + shown.map(b => '<div class="ret' + (b === last ? ' last' : '') + '">' + fmt(b[0]) + '<small>' + (b === last ? 'last boat' : dur(b[0] - arr) + ' there') + '</small></div>').join('') + '</div>';
+      }
+      h += '</div>';
+    });
+    h += '<button class="back" data-open="' + r.id + '" style="padding-top:0">Full ' + esc(r.name) + ' timetable ›</button></div>';
+  });
+  h += '<p class="legend">"There" is the time you would have on the island between getting off and the return boat.' + (approx ? ' Arrival times marked ≈ are my estimates of the crossing; the timetable data doesn’t include journey times.' : '') + '</p>';
+  $('#detail').innerHTML = h;
+}
+
+function renderHome(){
+  renderDests();
+  const c = ctx(), d = activeDay(c), q = $('#search').value.trim().toLowerCase();
+  const groups = {};
+  ROUTES.forEach(r => { if (!q || (r.name + ' ' + r.op).toLowerCase().includes(q)) (groups[r.group] = groups[r.group] || []).push(r); });
+  let h = '';
+  Object.keys(groups).forEach(g => {
+    h += '<div class="group"><h2>' + esc(g) + '</h2><div class="routes">';
+    groups[g].forEach(r => {
+      let nx = '';
+      if (r.freq) nx = '<span>Every ' + esc(((r.freq[Object.keys(r.freq)[0]][d] || []).slice(-2)[0] || ['', ''])[1]) + ' min in the daytime</span>';
+      else {
+        const parts = [];
+        Object.keys(r.dirs).slice(0, 2).forEach(k => {
+          const e = nextOf(entries(r, k, d), c.now);
+          const short = k.replace(/ via .*/, '').replace(/^Towards /, '→ ').replace(' to ', ' → ');
+          parts.push('<span>' + (r.dirs[k] && Object.keys(r.dirs).length > 1 && k !== 'All sailings' ? esc(short) + ' ' : '') + (e ? '<b>' + fmt(e[0]) + '</b>' : '<i>done today</i>') + '</span>');
+        });
+        nx = parts.join('');
+      }
+      h += '<button class="route" data-id="' + r.id + '"><div class="r-name"><span>' + esc(r.name) + '</span><span class="r-op">' + esc(r.op) + '</span></div><div class="r-next">' + nx + '</div></button>';
+    });
+    h += '</div></div>';
+  });
+  $('#groups').innerHTML = h || '<div class="empty" style="margin-top:16px">No route matches that search.</div>';
+}
+
+function renderDetail(){
+  if (openId.startsWith('to-')) return renderTrip();
+  const r = ROUTES.find(x => x.id === openId); if (!r) return;
+  const c = ctx(), d = activeDay(c);
+  const src = r.freq || r.dirs, names = Object.keys(src).filter(k => src[k]);
+  if (dirIx >= names.length) dirIx = 0;
+  const name = names[dirIx];
+  let h = '<button class="back" id="back">‹ All routes</button><h2 class="d-title">' + esc(r.name) + '</h2>' + (r.op ? '<div class="d-op">' + esc(r.op) + '</div>' : '') + (r.info ? '<p class="d-info">' + esc(r.info) + '</p>' : '');
+  if (names.length > 1) h += '<div class="tabs" role="tablist">' + names.map((n, i) => '<button role="tab" data-i="' + i + '" aria-selected="' + (i === dirIx) + '">' + esc(n.replace(/^Towards /, '→ ').replace(' to ', ' → ')) + '</button>').join('') + '</div>';
+  h += '<p class="dayline">' + DAYNAME[d] + ((r.daynotes || {})[d] ? ' · <b>' + esc(r.daynotes[d]) + '</b>' : '') + '</p>';
+  if (r.freq) {
+    const bands = r.freq[name][d] || [];
+    h += '<div class="tw"><table><tr><th>Hours</th><th style="text-align:right">Every (min)</th></tr>' + bands.map(b => '<tr><td>' + esc(b[0]) + '</td><td class="n">' + esc(b[1]) + '</td></tr>').join('') + '</table></div>';
+  } else {
+    const list = entries(r, name, d);
+    if (!list.length) h += '<div class="empty">No sailings listed in this direction for ' + DAYNAME[d] + '.</div>';
+    else {
+      const nx = nextOf(list, c.now), isRows = list.some(e => e[2]);
+      const mark = e => e[1] ? '<sup>' + (r.remnotes[e[1]] ? e[1] : '†') + '</sup>' : '';
+      const pill = e => e[1] && r.remnotes[e[1]] ? '<span class="pill">' + esc(r.remnotes[e[1]]) + '</span>' : '';
+      const cls = e => e === nx ? ' next' : (e[0] < c.now ? ' past' : '');
+      if (isRows) h += '<div class="list">' + list.map(e => '<div class="row' + cls(e) + '"><span class="t">' + fmt(e[0]) + '</span><span class="l">' + esc(e[2]) + (e[1] && !r.remnotes[e[1]] ? ' †' : '') + pill(e) + '</span></div>').join('') + '</div>';
+      else h += '<div class="chips">' + list.map(e => '<div class="chip' + cls(e) + '">' + fmt(e[0]) + mark(e) + '</div>').join('') + '</div>';
+      const keys = [...new Set(list.map(e => e[1]).filter(k => k && r.remnotes[k]))];
+      h += '<p class="legend">' + (nx ? 'Next sailing ' + fmt(nx[0]) + '.' : 'No more sailings today in this direction.') + keys.map(k => ' <sup style="color:var(--sea);font-weight:600">' + k + '</sup> ' + esc(r.remnotes[k]) + '.').join('') + '</p>';
+    }
+  }
+  if (r.piers && r.piers.length) h += '<div class="box"><h3>Piers · tap for directions</h3>' + pierRows(r.piers) + '</div>';
+  if (r.fares && r.fares.length) {
+    h += '<div class="box"><h3>Adult fares (HK$)</h3><div class="tw"><table>' + r.fares.map(f => '<tr><td>' + esc(f[0]) + '</td><td class="n">' + esc(f[1]) + '</td></tr>').join('') + '</table></div><p class="legend">Children aged 3–11 and people 65+ usually pay about half. Under 3 is free with an adult.</p></div>';
+  }
+  $('#detail').innerHTML = h;
+}
+
+function show(id){
+  openId = id; dirIx = 0;
+  $('#home').hidden = !!id; $('#detail').hidden = !id;
+  if (id) renderDetail(); else renderHome();
+  window.scrollTo(0, 0);
+  try { history.replaceState(null, '', id ? '#' + id : location.pathname); } catch (e) {}
+}
+
+document.addEventListener('click', e => {
+  const s = e.target.closest('#seg button');
+  if (s) { day = s.dataset.d; manual = day !== ctx().autoDay; refresh(); return; }
+  const r = e.target.closest('.route'); if (r) return show(r.dataset.id);
+  const g = e.target.closest('[data-to]'); if (g) return show(g.dataset.to);
+  const o = e.target.closest('[data-open]'); if (o) return show(o.dataset.open);
+  if (e.target.closest('#back')) return show(null);
+  const t = e.target.closest('.tabs button'); if (t) { dirIx = +t.dataset.i; renderDetail(); }
+});
+$('#search').addEventListener('input', renderHome);
+function refresh(){ renderBar(); openId ? renderDetail() : renderHome(); }
+refresh();
+try { const h = location.hash.slice(1); if (ROUTES.some(r => r.id === h) || DEST.some(x => x.id === h)) show(h); } catch (e) {}
+setInterval(refresh, 30000);
+</script>
