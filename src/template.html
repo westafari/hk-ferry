@@ -62,6 +62,11 @@ h1{font:700 1.2rem/1.1 var(--display);margin:0;letter-spacing:-.01em}
 .rets{display:grid;grid-template-columns:repeat(auto-fill,minmax(4.7rem,1fr));gap:6px}
 .ret{border:1px solid var(--line);border-radius:8px;padding:6px 4px;text-align:center;font:500 .98rem var(--mono);font-variant-numeric:tabular-nums}
 .ret small{display:block;font:400 .68rem var(--body);color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(8.2rem,1fr));gap:8px 14px;margin:12px 0 4px}
+.stats div{min-width:0}.stats dt{font-size:.74rem;color:var(--muted)}.stats dd{margin:0;font:600 1rem var(--mono);font-variant-numeric:tabular-nums}
+.stats small{font:500 .78rem var(--body);color:var(--next)}
+.more{display:block;width:100%;background:none;border:1px dashed var(--line);border-radius:9px;color:var(--sea);font-weight:600;font-size:.88rem;padding:9px 12px;margin-bottom:8px;cursor:pointer}
+.ft th.d{text-align:right;font-weight:600;font-size:.78rem;color:var(--muted);white-space:nowrap}
 .ret.tight{border-style:dashed}.ret.tight small,.retrow.tight .tt{color:var(--warn)}
 .nd{font:600 .62rem var(--body);color:var(--muted);margin-left:2px;vertical-align:super}
 .chip.next .nd,.trip.first .nd{color:inherit}
@@ -154,6 +159,16 @@ function pierRows(ids){
 const ft = m => fmt(m) + (m >= 1440 ? ' next day' : '');
 const th = m => fmt(m) + (m >= 1440 ? '<span class="nd">+1</span>' : '');
 const MIN_GAP = 10, TIGHT = 30; /* minutes between getting off and the return boat: below MIN_GAP is hidden, below TIGHT is flagged */
+const until = m => m <= 0 ? 'now' : m < 60 ? 'in ' + m + ' min' : 'in ' + Math.floor(m / 60) + 'h ' + String(m % 60).padStart(2, '0') + 'm';
+function every(list){
+  const t = [...new Set(list.map(e => e[0]))].filter(m => m >= 420 && m <= 1260), g = [];
+  for (let i = 1; i < t.length; i++) g.push(t[i] - t[i - 1]);
+  if (g.length < 3) return '';
+  g.sort((a, b) => a - b);
+  const m = g[Math.floor(g.length / 2)];
+  return '~' + (m < 60 ? m + ' min' : dur(m));
+}
+let showPast = false;
 let day = 'wd', manual = false, openId = null, dirIx = 0;
 
 function hkNow(){
@@ -283,23 +298,31 @@ function renderDetail(){
       const mark = e => e[1] ? '<sup>' + (r.remnotes[e[1]] ? e[1] : '†') + '</sup>' : '';
       const pill = e => e[1] && r.remnotes[e[1]] ? '<span class="pill">' + esc(r.remnotes[e[1]]) + '</span>' : '';
       const cls = e => e === nx ? ' next' : (isToday(c, d) && e[0] < c.now ? ' past' : '');
-      if (isRows) h += '<div class="list">' + list.map(e => '<div class="row' + cls(e) + '"><span class="t">' + th(e[0]) + '</span><span class="l">' + esc(e[2]) + (e[1] && !r.remnotes[e[1]] ? ' †' : '') + pill(e) + '</span></div>').join('') + '</div>';
-      else h += '<div class="chips">' + list.map(e => '<div class="chip' + cls(e) + '">' + th(e[0]) + mark(e) + '</div>').join('') + '</div>';
+      const gap = isRows ? '' : every(list), tf = !nx && isToday(c, d) ? entries(r, name, c.tmr)[0] : null;
+      h += '<dl class="stats">' + (isToday(c, d) ? '<div><dt>Next</dt><dd>' + (nx ? th(nx[0]) + ' <small>' + until(nx[0] - c.now) + '</small>' : tf ? '<small>tomorrow</small> ' + th(tf[0]) : '–') + '</dd></div>' : '')
+        + (gap ? '<div><dt>Every</dt><dd>' + gap + '</dd></div>' : '') + '<div><dt>First – last</dt><dd>' + th(list[0][0]) + ' – ' + th(list[list.length - 1][0]) + '</dd></div><div><dt>Sailings</dt><dd>' + list.length + '</dd></div></dl>';
+      const early = isToday(c, d) ? list.filter(e => e[0] < c.now) : [];
+      const vis = early.length && !showPast ? list.filter(e => e[0] >= c.now) : list;
+      if (early.length) h += '<button class="more" id="past">' + (showPast ? 'Hide earlier sailings' : 'Earlier today · ' + early.length + ' sailing' + (early.length > 1 ? 's' : '') + ' ›') + '</button>';
+      if (isRows) h += '<div class="list">' + vis.map(e => '<div class="row' + cls(e) + '"><span class="t">' + th(e[0]) + '</span><span class="l">' + esc(e[2]) + (e[1] && !r.remnotes[e[1]] ? ' †' : '') + pill(e) + '</span></div>').join('') + '</div>';
+      else h += '<div class="chips">' + vis.map(e => '<div class="chip' + cls(e) + '">' + th(e[0]) + mark(e) + '</div>').join('') + '</div>';
       const keys = [...new Set(list.map(e => e[1]).filter(k => k && r.remnotes[k]))];
-      h += '<p class="legend">' + (!isToday(c, d) ? 'First sailing ' + ft(list[0][0]) + ', last ' + ft(list[list.length - 1][0]) + '.'
-        : nx ? 'Next sailing ' + ft(nx[0]) + '.'
-        : 'Last boat today was ' + ft(list[list.length - 1][0]) + '.' + (entries(r, name, c.tmr)[0] ? ' Tomorrow’s first is ' + ft(entries(r, name, c.tmr)[0][0]) + '.' : '')) + keys.map(k => ' <sup style="color:var(--sea);font-weight:600">' + k + '</sup> ' + esc(r.remnotes[k]) + '.').join('') + '</p>';
+      h += keys.length ? '<p class="legend">' + keys.map(k => '<sup style="color:var(--sea);font-weight:600">' + k + '</sup> ' + esc(r.remnotes[k]) + '.').join(' ') + '</p>' : '';
     }
   }
   if (r.piers && r.piers.length) h += '<div class="box"><h3>Piers · tap for directions</h3>' + pierRows(r.piers) + '</div>';
   if (r.fares && r.fares.length) {
-    h += '<div class="box"><h3>Adult fares (HK$)</h3><div class="tw"><table>' + r.fares.map(f => '<tr><td>' + esc(f[0]) + '</td><td class="n">' + esc(f[1]) + '</td></tr>').join('') + '</table></div><p class="legend">Children aged 3–11 and people 65+ usually pay about half. Under 3 is free with an adult.</p></div>';
+    const days = [...new Set(r.fares.map(f => f[2]))].filter(Boolean), rows = [];
+    r.fares.forEach(f => { let row = rows.find(x => x.l === f[0]); if (!row) rows.push(row = {l: f[0], v: {}}); row.v[f[2]] = f[1]; });
+    const head = days.length > 1 ? '<tr><th></th>' + days.map(x => '<th class="d">' + esc(x) + '</th>').join('') + '</tr>' : '';
+    const cell = (row, x) => '<td class="n">' + esc(row.v[x] || '–') + '</td>';
+    h += '<div class="box"><h3>Adult fares (HK$)</h3><div class="tw"><table class="ft">' + head + rows.map(row => '<tr><td>' + esc(row.l) + (days.length === 1 ? ' <em style="color:var(--muted);font-style:normal">' + esc(days[0]) + '</em>' : '') + '</td>' + (days.length > 1 ? days.map(x => cell(row, x)).join('') : '<td class="n">' + esc(Object.values(row.v)[0]) + '</td>') + '</tr>').join('') + '</table></div><p class="legend">Children aged 3–11 and people 65+ usually pay about half. Under 3 is free with an adult.</p></div>';
   }
   $('#detail').innerHTML = h;
 }
 
 function show(id){
-  openId = id; dirIx = 0;
+  openId = id; dirIx = 0; showPast = false;
   $('#home').hidden = !!id; $('#detail').hidden = !id;
   if (id) renderDetail(); else renderHome();
   window.scrollTo(0, 0);
@@ -314,6 +337,7 @@ document.addEventListener('click', e => {
   const o = e.target.closest('[data-open]'); if (o) return show(o.dataset.open);
   if (e.target.closest('#back')) return show(null);
   const t = e.target.closest('.tabs button'); if (t) { dirIx = +t.dataset.i; renderDetail(); }
+  if (e.target.closest('#past')) { showPast = !showPast; renderDetail(); }
 });
 $('#search').addEventListener('input', renderHome);
 function refresh(){ renderBar(); openId ? renderDetail() : renderHome(); }
