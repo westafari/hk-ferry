@@ -156,15 +156,19 @@ function hkNow(){
 }
 const dayOf = wk => wk === 'Sun' ? 'sun' : wk === 'Sat' ? 'sat' : 'wd';
 const prevWk = {Mon:'Sun',Tue:'Mon',Wed:'Tue',Thu:'Wed',Fri:'Thu',Sat:'Fri',Sun:'Sat'};
+const nextWk = {Sun:'Mon',Mon:'Tue',Tue:'Wed',Wed:'Thu',Thu:'Fri',Fri:'Sat',Sat:'Sun'};
 
 /* Service day and clock position. Between midnight and 03:00 the late sailings of yesterday's timetable are still running. */
 function ctx(){
   const n = hkNow();
   const late = n.min < 180;
-  const autoDay = dayOf(late ? prevWk[n.wk] : n.wk);
-  return {now: late ? n.min + 1440 : n.min, autoDay, label: fmt(n.min)};
+  const svcWk = late ? prevWk[n.wk] : n.wk;
+  return {now: late ? n.min + 1440 : n.min, autoDay: dayOf(svcWk), tmr: dayOf(nextWk[svcWk]), label: fmt(n.min)};
 }
 function activeDay(c){ return manual ? day : c.autoDay; }
+/* The clock only applies to today's timetable. Looking at another day shows that whole day. */
+const isToday = (c, d) => d === c.autoDay;
+const nowFor = (c, d) => isToday(c, d) ? c.now : -1;
 
 function entries(r, dirName, d){ return (r.dirs[dirName] || {})[d] || []; }
 function nextOf(list, now){ return list.find(e => e[0] >= now); }
@@ -192,9 +196,14 @@ function renderTrip(){
     const r = ROUTES.find(x => x.id === l.r);
     let outs = entries(r, l.out, d).filter(e => !l.outLeg || e[2] === l.outLeg);
     const backs = entries(r, l.back, d);
-    const upcoming = outs.filter(e => e[0] >= c.now).slice(0, 3);
+    const upcoming = outs.filter(e => e[0] >= nowFor(c, d)).slice(0, 3);
     h += '<div class="leg"><h3>From ' + esc(l.origin) + '</h3>' + (l.pier && PIERS[l.pier].la ? '<a class="pl" href="' + mapsUrl(PIERS[l.pier]) + '" target="_blank" rel="noopener">Directions to ' + esc(PIERS[l.pier].n) + ' ›</a>' : '');
-    if (!upcoming.length) h += '<div class="empty">No more sailings from ' + esc(l.origin) + ' today' + ((r.daynotes || {})[d] ? '. ' + esc(r.daynotes[d]) : '.') + '</div>';
+    if (!upcoming.length) {
+      const tm = isToday(c, d) ? entries(r, l.out, c.tmr).filter(e => !l.outLeg || e[2] === l.outLeg)[0] : null;
+      const why = !outs.length ? 'No sailings from ' + esc(l.origin) + ' on ' + DAYNAME[d] + ((r.daynotes || {})[d] ? '. ' + esc(r.daynotes[d]) : '.')
+        : 'No more sailings from ' + esc(l.origin) + ' today. Last boat was ' + fmt(outs[outs.length - 1][0]) + '.';
+      h += '<div class="empty">' + why + (tm ? ' Tomorrow’s first is ' + fmt(tm[0]) + '.' : '') + '</div>';
+    }
     upcoming.forEach((e, i) => {
       any = true; if (l.approx) approx = true;
       const arr = e[0] + l.mins, rets = backs.filter(b => b[0] >= arr);
@@ -230,9 +239,9 @@ function renderHome(){
       else {
         const parts = [];
         Object.keys(r.dirs).slice(0, 2).forEach(k => {
-          const e = nextOf(entries(r, k, d), c.now);
+          const list = entries(r, k, d), e = nextOf(list, nowFor(c, d)), tf = !e && list.length && isToday(c, d) ? entries(r, k, c.tmr)[0] : null;
           const short = k.replace(/ via .*/, '').replace(/^Towards /, '→ ').replace(' to ', ' → ');
-          parts.push('<span>' + (r.dirs[k] && Object.keys(r.dirs).length > 1 && k !== 'All sailings' ? esc(short) + ' ' : '') + (e ? '<b>' + fmt(e[0]) + '</b>' : '<i>done today</i>') + '</span>');
+          parts.push('<span>' + (r.dirs[k] && Object.keys(r.dirs).length > 1 && k !== 'All sailings' ? esc(short) + ' ' : '') + (e ? '<b>' + fmt(e[0]) + '</b>' : !list.length ? '<i>no service</i>' : tf ? '<i>tomorrow ' + fmt(tf[0]) + '</i>' : '<i>done</i>') + '</span>');
         });
         nx = parts.join('');
       }
@@ -260,14 +269,16 @@ function renderDetail(){
     const list = entries(r, name, d);
     if (!list.length) h += '<div class="empty">No sailings listed in this direction for ' + DAYNAME[d] + '.</div>';
     else {
-      const nx = nextOf(list, c.now), isRows = list.some(e => e[2]);
+      const nx = isToday(c, d) ? nextOf(list, c.now) : null, isRows = list.some(e => e[2]);
       const mark = e => e[1] ? '<sup>' + (r.remnotes[e[1]] ? e[1] : '†') + '</sup>' : '';
       const pill = e => e[1] && r.remnotes[e[1]] ? '<span class="pill">' + esc(r.remnotes[e[1]]) + '</span>' : '';
-      const cls = e => e === nx ? ' next' : (e[0] < c.now ? ' past' : '');
+      const cls = e => e === nx ? ' next' : (isToday(c, d) && e[0] < c.now ? ' past' : '');
       if (isRows) h += '<div class="list">' + list.map(e => '<div class="row' + cls(e) + '"><span class="t">' + fmt(e[0]) + '</span><span class="l">' + esc(e[2]) + (e[1] && !r.remnotes[e[1]] ? ' †' : '') + pill(e) + '</span></div>').join('') + '</div>';
       else h += '<div class="chips">' + list.map(e => '<div class="chip' + cls(e) + '">' + fmt(e[0]) + mark(e) + '</div>').join('') + '</div>';
       const keys = [...new Set(list.map(e => e[1]).filter(k => k && r.remnotes[k]))];
-      h += '<p class="legend">' + (nx ? 'Next sailing ' + fmt(nx[0]) + '.' : 'No more sailings today in this direction.') + keys.map(k => ' <sup style="color:var(--sea);font-weight:600">' + k + '</sup> ' + esc(r.remnotes[k]) + '.').join('') + '</p>';
+      h += '<p class="legend">' + (!isToday(c, d) ? 'First sailing ' + fmt(list[0][0]) + ', last ' + fmt(list[list.length - 1][0]) + '.'
+        : nx ? 'Next sailing ' + fmt(nx[0]) + '.'
+        : 'Last boat today was ' + fmt(list[list.length - 1][0]) + '.' + (entries(r, name, c.tmr)[0] ? ' Tomorrow’s first is ' + fmt(entries(r, name, c.tmr)[0][0]) + '.' : '')) + keys.map(k => ' <sup style="color:var(--sea);font-weight:600">' + k + '</sup> ' + esc(r.remnotes[k]) + '.').join('') + '</p>';
     }
   }
   if (r.piers && r.piers.length) h += '<div class="box"><h3>Piers · tap for directions</h3>' + pierRows(r.piers) + '</div>';
