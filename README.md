@@ -18,4 +18,12 @@ Open the site in Safari, tap Share, then Add to Home Screen. After the first loa
 GitHub Actions rebuilds and deploys to GitHub Pages on every push and weekly. If a download fails or looks wrong, the build stops and the last good site stays up.
 
 ## Contributing
-This is a personal project. Only the owner can push; pull requests and issues from others are switched off.
+Pull requests and issues are welcome. Only the owner can merge, and every change needs approval before it reaches `main`.
+
+Good things to send:
+- **Timetable corrections.** Say which route, which day type, and where you saw the right time (operator site, a photo of the pier notice).
+- **Kaito and Star Ferry data.** These are typed by hand in `src/make_data.py` and are the most likely to be wrong or stale.
+- **Pier pins.** Piers marked "approximate pin" or "no map pin" in `src/make_data.py` need a verified coordinate.
+- **Crossing times** marked `approx`.
+
+Run `python3 build.py --no-fetch` and open `public/index.html` to check your change. The timetables themselves come from the Transport Department's open data, so fix those at the source, not in a pull request.
