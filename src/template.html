@@ -65,6 +65,16 @@ h1{font:700 1.2rem/1.1 var(--display);margin:0;letter-spacing:-.01em}
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(8.2rem,1fr));gap:8px 14px;margin:12px 0 4px}
 .stats div{min-width:0}.stats dt{font-size:.74rem;color:var(--muted)}.stats dd{margin:0;font:600 1rem var(--mono);font-variant-numeric:tabular-nums}
 .stats small{font:500 .78rem var(--body);color:var(--next)}
+.sr{display:flex;gap:8px;margin-top:10px}.sr #search{margin-top:0;flex:1;min-width:0}
+.seg2{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px;flex:none}
+.seg2 button{border:0;background:none;border-radius:7px;padding:0 10px;font-size:.82rem;font-weight:500;color:var(--muted);cursor:pointer}
+.seg2 button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.r-meta{font:500 .8rem var(--mono);color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.r-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;font-size:.84rem;color:var(--muted);margin-top:2px}
+.r-line b{font:600 .95rem var(--mono);color:var(--next);font-variant-numeric:tabular-nums}
+.r-line small{color:var(--next);font-size:.78rem}.r-line .rest{font:400 .84rem var(--mono);font-variant-numeric:tabular-nums}
+.r-line .lb{color:var(--warn);font-size:.74rem;font-weight:600}
+.r-line i{font-style:normal;color:var(--past)}
 .more{display:block;width:100%;background:none;border:1px dashed var(--line);border-radius:9px;color:var(--sea);font-weight:600;font-size:.88rem;padding:9px 12px;margin-bottom:8px;cursor:pointer}
 .ft th.d{text-align:right;font-weight:600;font-size:.78rem;color:var(--muted);white-space:nowrap}
 .ret.tight{border-style:dashed}.ret.tight small,.retrow.tight .tt{color:var(--warn)}
@@ -132,7 +142,8 @@ td.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;
 <main class="wrap">
   <section id="home" class="view">
     <div class="goto" id="goto"><h2>Going to…</h2><div class="dests" id="dests"></div></div>
-    <input id="search" type="search" placeholder="Search a pier or island" aria-label="Search routes" autocomplete="off">
+    <div class="sr"><input id="search" type="search" placeholder="Search a pier or island" aria-label="Search routes" autocomplete="off">
+      <div class="seg2" id="sort" role="group" aria-label="Sort routes"><button data-s="area" aria-pressed="true">Area</button><button data-s="soon" aria-pressed="false">Soonest</button></div></div>
     <div id="groups"></div>
   </section>
   <section id="detail" class="view" hidden></section>
@@ -168,7 +179,7 @@ function every(list){
   const m = g[Math.floor(g.length / 2)];
   return '~' + (m < 60 ? m + ' min' : dur(m));
 }
-let showPast = false;
+let showPast = false, sortMode = 'area';
 let day = 'wd', manual = false, openId = null, dirIx = 0;
 
 function hkNow(){
@@ -248,32 +259,60 @@ function renderTrip(){
   $('#detail').innerHTML = h;
 }
 
+function dirLabel(k){
+  if (['All sailings', 'Runs', 'Outbound runs'].includes(k)) return '';
+  k = k.replace(/ via .*/, '');
+  if (k.startsWith('Towards ')) return k.slice(8);
+  const i = k.lastIndexOf(' to '); if (i >= 0) return k.slice(i + 4);
+  const j = k.lastIndexOf(' → '); if (j >= 0) return k.slice(j + 3);
+  return k;
+}
+const FAREDAYS = {wd: ['Mon–Fri', 'Mon–Sat', 'School days'], sat: ['Sat', 'Mon–Sat', 'Sat, Sun & hols'], sun: ['Sun & hols', 'Sat, Sun & hols']};
+function fromFare(r, d){
+  const v = (r.fares || []).filter(f => !/^Child/.test(f[0]) && (!f[2] || FAREDAYS[d].includes(f[2]))).map(f => parseFloat(f[1])).filter(x => !isNaN(x));
+  return v.length ? Math.min(...v) : null;
+}
+function routeRow(r, c, d){
+  const fare = fromFare(r, d), multi = r.fares && new Set(r.fares.filter(f => !/^Child/.test(f[0])).map(f => f[1])).size > 1;
+  let lines = '', soon = Infinity;
+  if (r.freq) {
+    const bands = r.freq[Object.keys(r.freq)[0]][d] || [], last = bands.length ? (bands[bands.length - 1][0].match(/–(\d\d:\d\d)/) || [])[1] : '';
+    lines = '<div class="r-line"><span>Every ' + esc((bands.slice(-2)[0] || ['', ''])[1]) + ' min</span>' + (last ? '<span class="rest">last boat ' + last + '</span>' : '') + '</div>';
+    soon = c.now;
+  } else {
+    Object.keys(r.dirs).slice(0, 2).forEach(k => {
+      const list = entries(r, k, d), today = isToday(c, d), idx = list.findIndex(e => e[0] >= nowFor(c, d)), lab = dirLabel(k);
+      const rest = idx < 0 ? [] : list.slice(idx + 1, idx + 3);
+      let body;
+      if (!list.length) body = '<i>no service</i>';
+      else if (idx < 0) { const tf = today ? entries(r, k, c.tmr)[0] : null; body = tf ? '<i>done · tomorrow ' + th(tf[0]) + '</i>' : '<i>done</i>'; }
+      else {
+        const e = list[idx];
+        if (today) soon = Math.min(soon, e[0]);
+        body = '<b>' + th(e[0]) + '</b>' + (today ? '<small>' + until(e[0] - c.now) + '</small>' : '') + (idx === list.length - 1 ? '<span class="lb">last boat</span>' : '') + (rest.length ? '<span class="rest">' + rest.map(x => th(x[0])).join(' · ') + '</span>' : '');
+      }
+      lines += '<div class="r-line">' + (lab ? '<span>' + (/^(To|From) /.test(lab) ? '' : 'to ') + esc(lab) + '</span>' : '') + body + '</div>';
+    });
+  }
+  return {soon, html: '<button class="route" data-id="' + r.id + '"><div class="r-name"><span>' + esc(r.name) + '</span><span class="r-meta">' + esc([r.dshort, fare != null ? '$' + fare + (multi ? '+' : '') : ''].filter(Boolean).join(' · ')) + '</span></div><div class="r-next">' + lines + '</div></button>'};
+}
 function renderHome(){
   renderDests();
   const c = ctx(), d = activeDay(c), q = $('#search').value.trim().toLowerCase();
-  const groups = {}, words = q.split(/\s+/).filter(Boolean);
+  const words = q.split(/\s+/).filter(Boolean);
   /* Every word must appear somewhere in the route's name, operator, search keywords or pier names. */
   const hay = r => (r.name + ' ' + r.op + ' ' + (r.tags || '') + ' ' + (r.piers || []).map(id => PIERS[id].n).join(' ')).toLowerCase();
-  ROUTES.forEach(r => { if (words.every(w => hay(r).includes(w))) (groups[r.group] = groups[r.group] || []).push(r); });
+  const rows = ROUTES.filter(r => words.every(w => hay(r).includes(w))).map(r => ({r, ...routeRow(r, c, d)}));
+  document.querySelectorAll('#sort button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.s === sortMode)));
   let h = '';
-  Object.keys(groups).forEach(g => {
-    h += '<div class="group"><h2>' + esc(g) + '</h2><div class="routes">';
-    groups[g].forEach(r => {
-      let nx = '';
-      if (r.freq) nx = '<span>Every ' + esc(((r.freq[Object.keys(r.freq)[0]][d] || []).slice(-2)[0] || ['', ''])[1]) + ' min in the daytime</span>';
-      else {
-        const parts = [];
-        Object.keys(r.dirs).slice(0, 2).forEach(k => {
-          const list = entries(r, k, d), e = nextOf(list, nowFor(c, d)), tf = !e && list.length && isToday(c, d) ? entries(r, k, c.tmr)[0] : null;
-          const short = k.replace(/ via .*/, '').replace(/^Towards /, '→ ').replace(' to ', ' → ');
-          parts.push('<span>' + (r.dirs[k] && Object.keys(r.dirs).length > 1 && k !== 'All sailings' ? esc(short) + ' ' : '') + (e ? '<b>' + th(e[0]) + '</b>' : !list.length ? '<i>no service</i>' : tf ? '<i>tomorrow ' + fmt(tf[0]) + '</i>' : '<i>done</i>') + '</span>');
-        });
-        nx = parts.join('');
-      }
-      h += '<button class="route" data-id="' + r.id + '"><div class="r-name"><span>' + esc(r.name) + '</span><span class="r-op">' + esc([r.op, r.dshort].filter(Boolean).join(' · ')) + '</span></div><div class="r-next">' + nx + '</div></button>';
-    });
-    h += '</div></div>';
-  });
+  if (sortMode === 'soon') {
+    rows.sort((a, b) => a.soon - b.soon);
+    h = '<div class="group"><div class="routes">' + rows.map(x => x.html).join('') + '</div></div>';
+  } else {
+    const groups = {};
+    rows.forEach(x => (groups[x.r.group] = groups[x.r.group] || []).push(x));
+    Object.keys(groups).forEach(g => { h += '<div class="group"><h2>' + esc(g) + '</h2><div class="routes">' + groups[g].map(x => x.html).join('') + '</div></div>'; });
+  }
   $('#groups').innerHTML = h || '<div class="empty" style="margin-top:16px">No route matches that search.</div>';
 }
 
@@ -333,6 +372,7 @@ document.addEventListener('click', e => {
   const s = e.target.closest('#seg button');
   if (s) { day = s.dataset.d; manual = day !== ctx().autoDay; refresh(); return; }
   const r = e.target.closest('.route'); if (r) return show(r.dataset.id);
+  const so = e.target.closest('#sort button'); if (so) { sortMode = so.dataset.s; return renderHome(); }
   const g = e.target.closest('[data-to]'); if (g) return show(g.dataset.to);
   const o = e.target.closest('[data-open]'); if (o) return show(o.dataset.open);
   if (e.target.closest('#back')) return show(null);
