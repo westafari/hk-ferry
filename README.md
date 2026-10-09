@@ -16,3 +16,6 @@ Open the site in Safari, tap Share, then Add to Home Screen. After the first loa
     python3 tools/make_icons.py   # redraw the icons
 
 GitHub Actions rebuilds and deploys to GitHub Pages on every push and weekly. If a download fails or looks wrong, the build stops and the last good site stays up.
+
+## Contributing
+This is a personal project. Only the owner can push; pull requests and issues from others are switched off.
