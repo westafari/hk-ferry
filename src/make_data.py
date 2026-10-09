@@ -265,6 +265,19 @@ RP = {'star-central': ['central-7', 'tst'], 'star-wanchai': ['wanchai', 'tst'], 
  'k-mls-tapmun': ['mls', 'tapmun', 'wongshek'], 'k-tpc': ['mls', 'tungpingchau'], 'k-sk-kausai': ['skwan', 'kausai', 'highisland'], 'k-tko-swh': ['tko', 'shaukeiwan'], 'k-abd-alc': ['aberdeen', 'alc'],
  'k-mls-lcw': ['mls', 'lcw'], 'k-mls-kato': ['mls', 'kato', 'apchau'], 'k-stk': ['stk', 'lcw', 'kato', 'apchau'], 'k-tsh': ['taishuihang', 'lcw', 'kato', 'apchau']}
 for r in R: r['piers'] = RP.get(r['id'], [])
+
+# ---- Search keywords: places people type that are not in a route's name ----
+ALIAS = {'ysw': 'Lamma Island', 'skw': 'Lamma Island', 'abd-ysw': 'Lamma Island', 'abd-skw': 'Lamma Island',
+ 'cc': 'Cheung Chau Island', 'mw': 'Lantau Island Silvermine Bay', 'pc': 'Peng Chau Hei Ling Chau', 'inter': 'Lantau Island Chi Ma Wan',
+ 'db': 'Lantau Island DB', 'db-mw': 'Lantau Island DB', 'db-pc': 'Lantau Island DB Trappist', 'mawan-c': 'Ma Wan Lantau Island Park Island', 'mawan-tw': 'Ma Wan Lantau Island Park Island',
+ 'tm-to': 'Lantau Island Tai O Tung Chung Tuen Mun Sha Lo Wan', 'star-central': 'TST Kowloon Hong Kong Island', 'star-wanchai': 'TST Kowloon Hong Kong Island',
+ 'c-hh': 'Kowloon Hong Kong Island', 'np-hh': 'Kowloon Hong Kong Island', 'np-kc': 'Kowloon Hong Kong Island', 'np-kt': 'Kowloon Hong Kong Island',
+ 'k-tl-swh': 'Tung Lung Island', 'k-tl-skt': 'Tung Lung Island Yau Tong', 'k-potoi': 'Po Toi Island Stanley Aberdeen', 'k-tapmun': 'Grass Island Sai Kung Wong Shek',
+ 'k-mls-tapmun': 'Grass Island Tolo Harbour Sai Kung Wong Shek University', 'k-tpc': 'Ping Chau Tolo Harbour University', 'k-sk-kausai': 'Kau Sai Chau High Island', 'k-tko-swh': 'TKO',
+ 'k-mls-lcw': 'Tolo Harbour University', 'k-mls-kato': 'Tolo Harbour University', 'k-stk': 'Closed Area', 'k-abd-alc': 'Ap Lei Chau Southern'}
+for r in R:
+    r['tags'] = (ALIAS.get(r['id'], '') + (' kaito small ferry' if r['group'].startswith('Kaito') else '')).strip()
+
 assert all(p in PIERS for ps in RP.values() for p in ps)
 OVR = {'cc': dict(info='Central Pier 5. Fast ferry about 35–40 min; ordinary ferries are slower and marked.'),
        'mw': dict(info='Central Pier 6 (Eastern Berth). Fast ferry about 35–40 min; ordinary ferries are slower and marked.'),

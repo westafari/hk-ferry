@@ -230,8 +230,10 @@ function renderTrip(){
 function renderHome(){
   renderDests();
   const c = ctx(), d = activeDay(c), q = $('#search').value.trim().toLowerCase();
-  const groups = {};
-  ROUTES.forEach(r => { if (!q || (r.name + ' ' + r.op).toLowerCase().includes(q)) (groups[r.group] = groups[r.group] || []).push(r); });
+  const groups = {}, words = q.split(/\s+/).filter(Boolean);
+  /* Every word must appear somewhere in the route's name, operator, search keywords or pier names. */
+  const hay = r => (r.name + ' ' + r.op + ' ' + (r.tags || '') + ' ' + (r.piers || []).map(id => PIERS[id].n).join(' ')).toLowerCase();
+  ROUTES.forEach(r => { if (words.every(w => hay(r).includes(w))) (groups[r.group] = groups[r.group] || []).push(r); });
   let h = '';
   Object.keys(groups).forEach(g => {
     h += '<div class="group"><h2>' + esc(g) + '</h2><div class="routes">';
