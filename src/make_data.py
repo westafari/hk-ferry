@@ -73,18 +73,20 @@ def fares(f):
         v = r[iff].strip().replace('$', '')
         if v in ('', 'N/A'): continue
         bits = []
+        day_ = daylabel(r[id_]) if id_ is not None else ''
         if ir is not None: bits.append(norm(r[ir]))
         if it is not None and r[it].strip(): bits.append(norm(r[it]))
         pm = re.search(r'\((.*?)\)', p)
         if pm: bits.append(pm[1])
-        if id_ is not None and daylabel(r[id_]): bits.append(daylabel(r[id_]))
         if im is not None and im < len(r) and r[im].strip() and f.startswith(('mawan',)): bits.append('note ' + rem(r[im]))
         label = ' · '.join(bits) or 'Adult single'
+        for a_, b_ in (('Ordinary Ferry Service - Ordinary Class', 'Ordinary ferry · ordinary class'), ('Ordinary Ferry Service - Deluxe Class', 'Ordinary ferry · deluxe class'), ('Fast Ferry Service', 'Fast ferry'), ('Ordinary Ferry Service', 'Ordinary ferry')):
+            label = label.replace(a_, b_)
         try: v = ('%.1f' % float(v)).rstrip('0').rstrip('.') if float(v) != int(float(v)) else str(int(float(v)))
         except ValueError: pass
-        key = (label, v)
+        key = (label, v, day_)
         if key in seen: continue
-        seen.add(key); out.append([label, v])
+        seen.add(key); out.append([label, v, day_])
     return out
 
 SUN_REM = {'1': 'Ordinary ferry (slower)'}
@@ -108,11 +110,11 @@ def sf(a, b, wd, sat, sun): return {a: {'wd': wd, 'sat': sat, 'sun': sun}, b: No
 add('star-central', H, 'Central ⇄ Tsim Sha Tsui', 'Star Ferry', 'Central Pier 7 ⇄ Star Ferry Pier, Salisbury Road. About 9 min. No fixed timetable: ferries leave on the frequencies below.',
     freq={'Central → Tsim Sha Tsui': {'wd': STAR_CTR_WD, 'sat': STAR_CTR_WE, 'sun': STAR_CTR_WE},
           'Tsim Sha Tsui → Central': {'wd': STAR_TST_WD, 'sat': STAR_TST_WE, 'sun': STAR_TST_WE}},
-    fare=[['Upper deck · Mon–Fri', '5'], ['Lower deck · Mon–Fri', '4'], ['Upper deck · Sat, Sun & hols', '6.5'], ['Lower deck · Sat, Sun & hols', '5.6'], ['Child / 65+ · Mon–Fri (upper / lower)', '2.9 / 2.8'], ['Child / 65+ · weekend (upper / lower)', '3.9 / 3.7']])
+    fare=[['Upper deck', '5', 'Mon–Fri'], ['Upper deck', '6.5', 'Sat, Sun & hols'], ['Lower deck', '4', 'Mon–Fri'], ['Lower deck', '5.6', 'Sat, Sun & hols'], ['Child / 65+ (upper / lower)', '2.9 / 2.8', 'Mon–Fri'], ['Child / 65+ (upper / lower)', '3.9 / 3.7', 'Sat, Sun & hols']])
 add('star-wanchai', H, 'Wan Chai ⇄ Tsim Sha Tsui', 'Star Ferry', 'Wan Chai Pier, Hung Hing Road ⇄ Star Ferry Pier. About 8 min. Frequency in minutes; no fixed timetable.',
     freq={'Wan Chai → Tsim Sha Tsui': {'wd': WC_MS, 'sat': WC_MS, 'sun': WC_SUN},
           'Tsim Sha Tsui → Wan Chai': {'wd': TW_MS, 'sat': TW_MS, 'sun': TW_SUN}},
-    fare=[['Adult · Mon–Fri', '5'], ['Adult · Sat, Sun & hols', '6.5'], ['Child / 65+ · Mon–Fri', '2.9'], ['Child / 65+ · weekend', '3.9']])
+    fare=[['Adult', '5', 'Mon–Fri'], ['Adult', '6.5', 'Sat, Sun & hols'], ['Child / 65+', '2.9', 'Mon–Fri'], ['Child / 65+', '3.9', 'Sat, Sun & hols']])
 add('np-hh', H, 'North Point ⇄ Hung Hom', 'Sun Ferry', 'North Point (West) Pier ⇄ Hung Hom (North) Pier, Wa Shun St. About 8 min.', 'np_hh', remnotes={})
 add('np-kc', H, 'North Point ⇄ Kowloon City', 'Sun Ferry', 'North Point (West) Pier ⇄ Kowloon City Pier, San Ma Tau St. About 14 min.', 'np_klnc')
 add('np-kt', H, 'North Point ⇄ Kwun Tong ⇄ Kai Tak', 'Fortune Ferry', 'North Point (East) Pier ⇄ Kwun Tong Pier ⇄ Kai Tak Runway Park Pier. North Point–Kwun Tong about 12 min; the whole run about 24 min. Kai Tak calls run Sat, Sun & holidays only.', 'np_ktak')
@@ -169,14 +171,14 @@ kaito('k-potoi', 'Aberdeen / Stanley ⇄ Po Toi', 'Tsui Wah Ferry', 'Aberdeen Ts
         wd=L('3.30 p.m.', 'return'),
         sat=L('12.40 p.m.', 'to Stanley') + L('2.00 p.m. 4.00 p.m.', 'to Aberdeen via Stanley'),
         sun=L('9.15 a.m. 10.45 a.m. 3.00 p.m. 4.30 p.m.', 'to Stanley') + L('6.00 p.m.', 'to Aberdeen via Stanley'))},
-    [['Tue, Thu & Sat · non-resident', '30'], ['Sun & holidays · non-resident', '30']],
+    [['Non-resident', '30', 'Tue, Thu & Sat'], ['Non-resident', '30', 'Sun & hols']],
     daynotes={'wd': 'Tuesdays and Thursdays only. No service Mon, Wed, Fri.', 'sat': 'Saturdays except public holidays.'})
 kaito('k-tapmun', 'Tap Mun ⇄ Wong Shek', 'Tsui Wah Ferry', 'Tap Mun to Wong Shek Pier (Sai Kung). Sailings marked 1 are run by the Ma Liu Shui service and call at Ko Lau Wan and Chek Keng. Hotline 2272 2022.',
     {'Tap Mun → Wong Shek': kd(wd=L('7:45 am 11:45 am 1:45 pm 3:45 pm 6:00 pm') + L('10:00 am 4:20 pm', '', '1'), sat=L('8:00 am 9:00 am 11:00 am 12:00 noon 1:05 pm 2:00 pm 3:05 pm 4:05 pm 5:05 pm 6:05 pm') + L('10:00 am 4:20 pm', '', '1'),
                                    sun=L('8:00 am 9:00 am 11:00 am 12:00 noon 1:05 pm 2:00 pm 3:05 pm 4:05 pm 5:05 pm 6:05 pm') + L('10:00 am 4:20 pm', '', '1')),
      'Wong Shek → Tap Mun': kd(wd=L('8:30 am 12:30 pm 2:30 pm 4:30 pm 6:30 pm') + L('10:35 am 4:55 pm', '', '1'), sat=L('8:30 am 9:30 am 11:30 am 12:30 pm 1:30 pm 2:35 pm 3:35 pm 4:35 pm 5:35 pm 6:35 pm') + L('10:35 am 4:55 pm', '', '1'),
                                    sun=L('8:30 am 9:30 am 11:30 am 12:30 pm 1:30 pm 2:35 pm 3:35 pm 4:35 pm 5:35 pm 6:35 pm') + L('10:35 am 4:55 pm', '', '1'))},
-    [['Mon–Fri', '11'], ['Sat, Sun & holidays', '16']], remnotes={'1': 'via Ko Lau Wan & Chek Keng'})
+    [['Adult', '11', 'Mon–Fri'], ['Adult', '16', 'Sat, Sun & hols']], remnotes={'1': 'via Ko Lau Wan & Chek Keng'})
 run_wd = [[510, '', 'Ma Liu Shui 08:30 → Sham Chung 09:00 → Lai Chi Chong 09:15 → Tap Mun 10:00 → Ko Lau Wan 10:05 → Chek Keng 10:20 → Wong Shek 10:35'],
           [645, '', 'Back: Chek Keng 10:45 → Ko Lau Wan 11:00 → Tap Mun 11:10 → Lai Chi Chong 11:40 → Sham Chung 11:55 → Ma Liu Shui 12:25'],
           [900, '', 'Ma Liu Shui 15:00 → Sham Chung 15:30 → Lai Chi Chong 15:45 → Tap Mun 16:20 → Ko Lau Wan 16:25 → Chek Keng 16:40 → Wong Shek 16:55'],
@@ -184,7 +186,7 @@ run_wd = [[510, '', 'Ma Liu Shui 08:30 → Sham Chung 09:00 → Lai Chi Chong 09
 run_we = sorted(run_wd[:2] + [[750, '', 'Ma Liu Shui 12:30 → Sham Chung 13:00 → Lai Chi Chong 13:15 → Tap Mun 13:45'],
                                 [855, '', 'Back: Lai Chi Chong 14:15 → Sham Chung 14:30 → Ma Liu Shui 15:00 (Tap Mun departure not shown in the source)']] + run_wd[2:])
 kaito('k-mls-tapmun', 'Ma Liu Shui ⇄ Tap Mun', 'Tsui Wah Ferry', 'From Ma Liu Shui Ferry Pier (Science Park Rd, near University station) up Tolo Harbour to Tap Mun and Wong Shek. Each row is a whole run with its stops. Hotline 2272 2022.',
-    {'Runs': {'wd': run_wd, 'sat': run_we, 'sun': run_we}}, [['Mon–Fri', '20'], ['Sat, Sun & holidays', '30']])
+    {'Runs': {'wd': run_wd, 'sat': run_we, 'sun': run_we}}, [['Adult', '20', 'Mon–Fri'], ['Adult', '30', 'Sat, Sun & hols']])
 kaito('k-tpc', 'Ma Liu Shui ⇄ Tung Ping Chau', 'Tsui Wah Ferry', 'Ma Liu Shui Ferry Pier to Tung Ping Chau Public Pier. Weekends and public holidays only. Saturday return times are 15:30 and 17:15 as listed by the Transport Department; confirm on 2272 2022. Return tickets are valid for one round trip.',
     {'Ma Liu Shui → Tung Ping Chau': kd(sat=L('9.00 a.m.'), sun=L('9.00 a.m.')), 'Tung Ping Chau → Ma Liu Shui': kd(sat=L('3.30 p.m. 5.15 p.m.'), sun=L('5.15 p.m.'))},
     [['Adult / child · round trip', '100'], ['65+ / disabled · single', '50']], daynotes={'wd': 'No service Monday to Friday.'})
@@ -264,6 +266,8 @@ RP = {'star-central': ['central-7', 'tst'], 'star-wanchai': ['wanchai', 'tst'], 
  'tm-to': ['tuenmun', 'tungchung', 'shalowan', 'taio'], 'k-tl-swh': ['shaukeiwan', 'tunglung'], 'k-tl-skt': ['skt', 'tunglung'], 'k-potoi': ['aberdeen', 'stanley', 'potoi'], 'k-tapmun': ['tapmun', 'wongshek'],
  'k-mls-tapmun': ['mls', 'tapmun', 'wongshek'], 'k-tpc': ['mls', 'tungpingchau'], 'k-sk-kausai': ['skwan', 'kausai', 'highisland'], 'k-tko-swh': ['tko', 'shaukeiwan'], 'k-abd-alc': ['aberdeen', 'alc'],
  'k-mls-lcw': ['mls', 'lcw'], 'k-mls-kato': ['mls', 'kato', 'apchau'], 'k-stk': ['stk', 'lcw', 'kato', 'apchau'], 'k-tsh': ['taishuihang', 'lcw', 'kato', 'apchau']}
+for r in R:
+    r['fares'] = [f if len(f) == 3 else [f[0], f[1], ''] for f in r['fares']]
 for r in R: r['piers'] = RP.get(r['id'], [])
 
 # ---- Search keywords: places people type that are not in a route's name ----
