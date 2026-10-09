@@ -4,17 +4,17 @@
 /* Layout: a departure-board feel. One sticky bar (clock + day type), a grouped route list with the next sailing on each row, and a detail view with direction tabs and time chips. */
 :root{
   --bg:#eef3f3; --surface:#ffffff; --ink:#0d2a33; --muted:#546a72; --line:#d3e0e2;
-  --warn:#a35a00; --sea:#0a6f7d; --sea-soft:#d9eef0; --next:#d8452b; --next-soft:#fbe4de; --past:#9fb1b6;
+  --warn:#a35a00; --sea:#0a6f7d; --sea-soft:#d9eef0; --next:#c23a21; --next-soft:#fbe4de; --past:#75898f;
   --display:"Bricolage Grotesque","Avenir Next",system-ui,sans-serif;
   --body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#0a1a1f; --surface:#112830; --ink:#e3f0f2; --muted:#90a9b0; --line:#25414a;
-  --warn:#f0b44c; --sea:#4fc3d1; --sea-soft:#14363d; --next:#ff7a5e; --next-soft:#3b1f19; --past:#4f6970; color-scheme:dark}}
+  --warn:#f0b44c; --sea:#4fc3d1; --sea-soft:#14363d; --next:#ff7a5e; --next-soft:#3b1f19; --past:#6f8f98; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0a1a1f; --surface:#112830; --ink:#e3f0f2; --muted:#90a9b0; --line:#25414a;
-  --warn:#f0b44c; --sea:#4fc3d1; --sea-soft:#14363d; --next:#ff7a5e; --next-soft:#3b1f19; --past:#4f6970; color-scheme:dark}
+  --warn:#f0b44c; --sea:#4fc3d1; --sea-soft:#14363d; --next:#ff7a5e; --next-soft:#3b1f19; --past:#6f8f98; color-scheme:dark}
 *{box-sizing:border-box}
 body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--body);margin:0;padding-inline:16px;padding-block:0 40px;-webkit-text-size-adjust:100%}
 .wrap{max-width:640px;margin-inline:auto}
@@ -35,7 +35,7 @@ h1{font:700 1.2rem/1.1 var(--display);margin:0;letter-spacing:-.01em}
 
 #search{width:100%;margin-top:10px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit}
 .group{margin-top:16px}
-.group h2{font:600 .74rem var(--body);text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0 0 8px}
+.group h2{font:600 .88rem var(--body);color:var(--muted);margin:0 0 8px}
 .routes{display:grid;gap:6px}
 .route{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:9px 12px;cursor:pointer}
 .route:active{background:var(--sea-soft)}
@@ -46,19 +46,19 @@ h1{font:700 1.2rem/1.1 var(--display);margin:0;letter-spacing:-.01em}
 .r-next i{font-style:normal;color:var(--past)}
 
 .goto{margin-top:10px;display:flex;align-items:center;gap:10px}
-.goto h2{font:600 .7rem var(--body);text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0;white-space:nowrap}
+.goto h2{font:600 .85rem var(--body);color:var(--muted);margin:0;white-space:nowrap}
 .dests{display:flex;gap:6px;overflow-x:auto;min-width:0;margin-right:-16px;padding-right:16px;scrollbar-width:none;-webkit-mask-image:linear-gradient(to right,#000 88%,transparent);mask-image:linear-gradient(to right,#000 88%,transparent)}
 .dests::-webkit-scrollbar{display:none}
 .dests button{flex:none;white-space:nowrap;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 12px;font-weight:500;font-size:.88rem;cursor:pointer}
 .dests button:active{background:var(--sea-soft)}
-.leg h3{font:600 .74rem var(--body);text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:22px 0 8px}
+.leg h3{font:600 .88rem var(--body);color:var(--muted);margin:22px 0 6px}
 .trip{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
 .trip.first{border-color:var(--next);box-shadow:inset 3px 0 0 var(--next)}
 .out{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 12px}
 .out b{font:600 1.35rem var(--mono);font-variant-numeric:tabular-nums}
 .trip.first .out b{color:var(--next)}
 .out span{color:var(--muted);font-size:.86rem}
-.back-l{font-size:.74rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:10px 0 6px}
+.back-l{font-size:.82rem;font-weight:600;color:var(--muted);margin:10px 0 6px}
 .rets{display:grid;grid-template-columns:repeat(auto-fill,minmax(4.7rem,1fr));gap:6px}
 .ret{border:1px solid var(--line);border-radius:8px;padding:6px 4px;text-align:center;font:500 .98rem var(--mono);font-variant-numeric:tabular-nums}
 .ret small{display:block;font:400 .68rem var(--body);color:var(--muted)}
@@ -105,7 +105,10 @@ a.pier span{color:var(--sea);font-weight:600;font-size:.86rem;white-space:nowrap
 .chip.next{background:var(--next);border-color:var(--next);color:#fff;font-weight:600}
 :root[data-theme="dark"] .chip.next{color:#2a0d06}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .chip.next{color:#2a0d06}}
-.chip sup{font:600 .62rem var(--body);position:absolute;top:2px;right:5px;color:var(--sea)}
+.chip sup{font:700 .78rem var(--body);position:absolute;top:1px;right:5px;color:var(--muted)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--sea)}
+.chip .dot{position:absolute;top:6px;right:6px}.chip.next .dot{background:currentColor}
+.dot.ls{vertical-align:baseline;margin-right:4px}
 .chip.next sup{color:inherit}
 .list{display:grid;gap:6px}
 .row{display:grid;grid-template-columns:4.4rem 1fr;gap:12px;align-items:baseline;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:9px 12px}
@@ -117,14 +120,15 @@ a.pier span{color:var(--sea);font-weight:600;font-size:.86rem;white-space:nowrap
 .empty{padding:18px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:.92rem}
 .legend{font-size:.8rem;color:var(--muted);margin:12px 0 0}
 .box{margin-top:22px}
-.box h3{font:600 .74rem var(--body);text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0 0 8px}
+.box h3{font:600 .88rem var(--body);color:var(--muted);margin:0 0 8px}
 table{width:100%;border-collapse:collapse;font-size:.9rem;background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
 td,th{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
 tr:last-child td{border-bottom:0}
 td.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:500}
 .tw{overflow-x:auto;border-radius:10px}
 .foot{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);font-size:.8rem;color:var(--muted)}
-.foot p{margin:0 0 8px}
+.foot p{margin:8px 0 0}
+.foot summary{cursor:pointer;color:var(--muted);padding-block:2px}
 .foot a{color:var(--sea)}
 @media (prefers-reduced-motion:no-preference){.view{animation:in .18s ease-out}@keyframes in{from{opacity:.4;transform:translateY(4px)}}}
 </style>
@@ -147,11 +151,12 @@ td.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;
     <div id="groups"></div>
   </section>
   <section id="detail" class="view" hidden></section>
-  <footer class="foot">
-    <p>Timetables and fares from the Transport Department's open data (updated __BUILT__) and Star Ferry's published frequencies. Times are 24-hour, Hong Kong time. Sailings after midnight appear at the end of the list.</p>
+  <details class="foot">
+    <summary>About this data · updated __BUILT__</summary>
+    <p>Timetables and fares come from the Transport Department's open data, and Star Ferry's published frequencies. Times are 24-hour, Hong Kong time. +1 means after midnight.</p>
     <p>Ferries can be cancelled or changed for typhoons, black rainstorm warnings and special events. Check the operator before a tight connection. On a public holiday, tap Sun / holiday at the top.</p>
     <p>† on a time means the operator attaches a footnote (for example a different vessel or a stop). It isn't spelled out in the open data.</p>
-  </footer>
+  </details>
 </main>
 
 <script>
@@ -334,7 +339,7 @@ function renderDetail(){
     if (!list.length) h += '<div class="empty">No sailings listed in this direction for ' + DAYNAME[d] + '.</div>';
     else {
       const nx = isToday(c, d) ? nextOf(list, c.now) : null, isRows = list.some(e => e[2]);
-      const mark = e => e[1] ? '<sup>' + (r.remnotes[e[1]] ? e[1] : '†') + '</sup>' : '';
+      const mark = e => !e[1] ? '' : r.remnotes[e[1]] ? '<i class="dot"></i>' : '<sup>†</sup>';
       const pill = e => e[1] && r.remnotes[e[1]] ? '<span class="pill">' + esc(r.remnotes[e[1]]) + '</span>' : '';
       const cls = e => e === nx ? ' next' : (isToday(c, d) && e[0] < c.now ? ' past' : '');
       const gap = isRows ? '' : every(list), tf = !nx && isToday(c, d) ? entries(r, name, c.tmr)[0] : null;
@@ -346,7 +351,7 @@ function renderDetail(){
       if (isRows) h += '<div class="list">' + vis.map(e => '<div class="row' + cls(e) + '"><span class="t">' + th(e[0]) + '</span><span class="l">' + esc(e[2]) + (e[1] && !r.remnotes[e[1]] ? ' †' : '') + pill(e) + '</span></div>').join('') + '</div>';
       else h += '<div class="chips">' + vis.map(e => '<div class="chip' + cls(e) + '">' + th(e[0]) + mark(e) + '</div>').join('') + '</div>';
       const keys = [...new Set(list.map(e => e[1]).filter(k => k && r.remnotes[k]))];
-      h += keys.length ? '<p class="legend">' + keys.map(k => '<sup style="color:var(--sea);font-weight:600">' + k + '</sup> ' + esc(r.remnotes[k]) + '.').join(' ') + '</p>' : '';
+      h += keys.length ? '<p class="legend">' + keys.map(k => '<i class="dot ls"></i>' + esc(r.remnotes[k]) + '.').join(' ') + '</p>' : '';
     }
   }
   if (r.piers && r.piers.length) h += '<div class="box"><h3>Piers · tap for directions</h3>' + pierRows(r.piers) + '</div>';
