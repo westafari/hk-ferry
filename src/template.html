@@ -21,34 +21,35 @@ body{background:var(--bg);color:var(--ink);font:16px/1.45 var(--body);margin:0;p
 button{font:inherit;color:inherit}
 button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(--sea);outline-offset:2px}
 
-.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:12px 10px;border-bottom:1px solid var(--line);margin-inline:-16px;padding-inline:16px}
-.bar-in{max-width:640px;margin-inline:auto;display:grid;gap:10px}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:10px 8px;border-bottom:1px solid var(--line);margin-inline:-16px;padding-inline:16px}
+.bar-in{max-width:640px;margin-inline:auto;display:grid;gap:8px}
 .top{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
-h1{font:700 1.45rem/1.1 var(--display);margin:0;letter-spacing:-.01em}
-.clock{font:500 .95rem var(--mono);color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+h1{font:700 1.2rem/1.1 var(--display);margin:0;letter-spacing:-.01em}
+.clock{font:500 .85rem var(--mono);color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 .seg{display:grid;grid-template-columns:repeat(3,1fr);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
-.seg button{border:0;background:none;padding:9px 4px;border-radius:7px;font-weight:500;font-size:.88rem;cursor:pointer;color:var(--muted)}
+.seg button{border:0;background:none;padding:7px 4px;border-radius:7px;font-weight:500;font-size:.88rem;cursor:pointer;color:var(--muted)}
 .seg button[aria-pressed="true"]{background:var(--sea);color:#fff}
 :root[data-theme="dark"] .seg button[aria-pressed="true"]{color:#06232a}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .seg button[aria-pressed="true"]{color:#06232a}}
-.hint{font-size:.78rem;color:var(--muted);margin:0}
+.hint{font-size:.78rem;color:var(--muted);margin:-2px 0 0}
 
-#search{width:100%;margin-top:14px;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit}
-.group{margin-top:22px}
+#search{width:100%;margin-top:10px;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit}
+.group{margin-top:16px}
 .group h2{font:600 .74rem var(--body);text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0 0 8px}
-.routes{display:grid;gap:8px}
-.route{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer}
+.routes{display:grid;gap:6px}
+.route{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:9px 12px;cursor:pointer}
 .route:active{background:var(--sea-soft)}
 .r-name{font:600 1.02rem/1.25 var(--display);display:flex;justify-content:space-between;gap:10px}
 .r-op{font:400 .78rem var(--body);color:var(--muted);white-space:nowrap}
-.r-next{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.84rem;color:var(--muted)}
+.r-next{margin-top:3px;display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.84rem;color:var(--muted)}
 .r-next b{font:600 .9rem var(--mono);color:var(--next);font-variant-numeric:tabular-nums}
 .r-next i{font-style:normal;color:var(--past)}
 
-.goto{margin-top:16px}
-.goto h2{font:600 .74rem var(--body);text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0 0 8px}
-.dests{display:flex;flex-wrap:wrap;gap:8px}
-.dests button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:9px 14px;font-weight:500;font-size:.92rem;cursor:pointer}
+.goto{margin-top:10px;display:flex;align-items:center;gap:10px}
+.goto h2{font:600 .7rem var(--body);text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:0;white-space:nowrap}
+.dests{display:flex;gap:6px;overflow-x:auto;min-width:0;margin-right:-16px;padding-right:16px;scrollbar-width:none;-webkit-mask-image:linear-gradient(to right,#000 88%,transparent);mask-image:linear-gradient(to right,#000 88%,transparent)}
+.dests::-webkit-scrollbar{display:none}
+.dests button{flex:none;white-space:nowrap;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 12px;font-weight:500;font-size:.88rem;cursor:pointer}
 .dests button:active{background:var(--sea-soft)}
 .leg h3{font:600 .74rem var(--body);text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:22px 0 8px}
 .trip{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
@@ -129,7 +130,7 @@ td.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;
   <section id="detail" class="view" hidden></section>
   <footer class="foot">
     <p>Timetables and fares from the Transport Department's open data (updated __BUILT__) and Star Ferry's published frequencies. Times are 24-hour, Hong Kong time. Sailings after midnight appear at the end of the list.</p>
-    <p>Ferries can be cancelled or changed for typhoons, black rainstorm warnings and special events. Check the operator before a tight connection. Public holidays use the Sun / holiday timetable.</p>
+    <p>Ferries can be cancelled or changed for typhoons, black rainstorm warnings and special events. Check the operator before a tight connection. On a public holiday, tap Sun / holiday at the top.</p>
     <p>† on a time means the operator attaches a footnote (for example a different vessel or a stop). It isn't spelled out in the open data.</p>
   </footer>
 </main>
@@ -177,8 +178,9 @@ function renderBar(){
   const c = ctx(), d = activeDay(c);
   $('#clock').textContent = c.label + ' HKT';
   document.querySelectorAll('#seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.d === d)));
-  $('#hint').textContent = manual && d !== c.autoDay ? 'Showing ' + DAYNAME[d] + '. Tap ' + { wd:'Mon–Fri', sat:'Saturday', sun:'Sun / holiday' }[c.autoDay] + ' to go back to today.'
-    : 'Today follows ' + DAYNAME[c.autoDay] + '. On a public holiday, tap Sun / holiday.';
+  const off = manual && d !== c.autoDay;
+  $('#hint').hidden = !off;
+  if (off) $('#hint').textContent = 'Showing ' + DAYNAME[d] + '. Tap ' + { wd:'Mon–Fri', sat:'Saturday', sun:'Sun / holiday' }[c.autoDay] + ' for today.';
 }
 
 function renderDests(){
